@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
-export default class ThreeContainer extends Component {
+export default class App extends Component {
 
   componentDidMount() {
     const parent = document.getElementById('threejs')
@@ -41,6 +41,9 @@ export default class ThreeContainer extends Component {
     let controls = new OrbitControls(camera, parent);
     controls.target.set(0, 0, 0);
     controls.rotateSpeed = 0.5;
+    controls.zoomSpeed = 8;
+    controls.minDistance = 10
+    controls.maxDistance = 200;
     controls.update();
 
     const animate = function () {
