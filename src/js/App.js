@@ -17,16 +17,14 @@ export default class App extends Component {
 
     parent.appendChild(renderer.domElement);
 
-    // let geometry = new THREE.SphereGeometry( 15, 32, 32 );
-    let geometry = new THREE.SphereGeometry( 500, 60, 40 );
+    let geometry = new THREE.SphereGeometry( 15, 32, 32 );
     let texture = new THREE.TextureLoader().load('./img/pano_1.png')
-    let material = new THREE.MeshBasicMaterial({ map: texture })
+    let material = new THREE.MeshBasicMaterial({ map: texture, wireframe: true })
     const sphere = new THREE.Mesh(geometry, material);
 
-    // sphere.scale.x = 0.1
-    // sphere.scale.y = 0.1
-    // sphere.scale.z = 0.1
-    geometry.scale( - 1, 1, 1 );
+    sphere.scale.x = 0.1
+    sphere.scale.y = 0.1
+    sphere.scale.z = 0.1
 
     scene.add(sphere);
 
@@ -36,21 +34,13 @@ export default class App extends Component {
     plane.rotation.x = THREE.MathUtils.degToRad(-90)
     plane.rotation.z = THREE.MathUtils.degToRad(-30)
     plane.position.y = -1.5;
-    // scene.add(plane)  
-
-    let controls = new OrbitControls(camera, parent);
-    controls.target.set(0, 0, 0);
-    controls.rotateSpeed = 0.5;
-    controls.zoomSpeed = 8;
-    controls.minDistance = 10
-    controls.maxDistance = 200;
-    controls.update();
+    scene.add(plane)  
 
     const animate = function () {
       requestAnimationFrame(animate);
 
       // sphere.rotation.x += 0.005
-      // sphere.rotation.y += 0.003
+      sphere.rotation.y += 0.003
       // sphere.rotation.z += 0.005
 
       renderer.render(scene, camera);
