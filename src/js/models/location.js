@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 
+
 export default class Location {
   constructor({ src }) {
     this.src = src
