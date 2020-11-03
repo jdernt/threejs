@@ -1,6 +1,6 @@
 const data = [
   {
-    id: 1,
+    id: 0,
     src: "./img/pano_1.png",
     coords: {
       x: 0,
@@ -8,40 +8,56 @@ const data = [
       z: 0
     },
     description: 'центр перекрестка',
-    siblings: [2, 3]
+    siblings: [1, 2, 3],
+    direction: 0
+  },
+  {
+    id: 1,
+    src: "./img/pano_2.png",
+    coords: {
+      x: 1,
+      y: 0,
+      z: 0
+    },
+    description: 'у пекарни',
+    siblings: [0],
+    direction: 130
   },
   {
     id: 2,
-    src: "./img/pano_2.png",
+    src: "./img/pano_3.png",
     coords: {
-      x: 4,
+      x: 1.5,
       y: 0,
       z: 1
     },
-    description: 'у пекарни',
-    siblings: [1]
+    description: 'возле рекламы',
+    siblings: [0],
+    direction: -90
   },
   {
     id: 3,
     src: "./img/pano_4.png",
     coords: {
-      x: -4,
+      x: -1,
       y: 0,
-      z: 1
+      z: 0
     },
     description: 'напротив пекарни',
-    siblings: [1, 4]
+    siblings: [0, 7],
+    direction: 0
   },
   {
-    id: 4,
+    id: 7,
     src: "./img/pano_4_1.png",
     coords: {
-      x: -8,
+      x: -2,
       y: 0,
-      z: 1
+      z: 0
     },
     description: 'еще дальше от пекарни',
-    siblings: [3]
+    siblings: [3],
+    direction: 0
   },
 ]
 

@@ -14,6 +14,7 @@ export default class App extends Component {
     isLoading: false,
     isActive: false
   }
+  locations = []
 
   isUserInteracting = false;
   isSphereAnimation = false;
@@ -27,7 +28,6 @@ export default class App extends Component {
   componentDidMount = async () => {
     const { id, coords, siblings } = data[0];
 
-    this.currentId = id;
     this.setId(id);
 
     this.raycaster = new THREE.Raycaster();
@@ -47,128 +47,19 @@ export default class App extends Component {
 
     this.parent.appendChild(this.renderer.domElement);
 
-    this.sphere = new Models.Sphere()
+    this.sphere = new Models.Sphere({ app: this, data: data[0] })
     await this.sphere.init()
     this.scene.add(this.sphere.mesh)
+    this.sphere.mesh.material.opacity = 1
+    this.loadSiblings(siblings)
 
-    this.anotherSphere = new Models.Sphere();
+    this.anotherSphere = new Models.Sphere({ app: this, data: data[0] });
     await this.anotherSphere.init()
     this.scene.add(this.anotherSphere.mesh)
-    this.anotherSphere.mesh.opacity = 0
     this.anotherSphere.mesh.position.set(15, 0, 0);
 
     this.createArrows(siblings, coords);
 
-    const onDocumentMouseDown = (event) => {
-      event.preventDefault();
-
-      if (!this.isSphereAnimation) {
-        this.isUserInteracting = true
-
-        this.downPointerX = event.clientX
-        this.downPointerY = event.clientY
-        this.downPointerLon = this.lon
-        this.downPointerLat = this.lat
-
-        this.raycaster.setFromCamera(this.mouse, this.camera);
-
-        let arrows;
-
-        this.scene.children.forEach(children => {
-          if (children.type === 'Group') {
-            arrows = children.children;
-          }
-        })
-
-        const intersects = this.raycaster.intersectObjects(arrows);
-
-        for ( let i = 0; i < intersects.length; i ++ ) {
-
-          this.scene.remove(this.arrowGroup.arrowGroup)
-
-          const currentData = data.find(({id}) => id === this.currentId);
-          const siblingData = data.find(({id}) => id === intersects[i].object.name);
-
-          const unit_vec = helpers.getUnicVector(currentData.coords, siblingData.coords);
-
-          const coefficient = 5;
-          const newCoords = {
-            x: unit_vec.x * coefficient,
-            y: unit_vec.y * coefficient,
-            z: unit_vec.z * coefficient,
-          };
-          
-          this.isSphereAnimation = true;
-          this.isUserInteracting = false;
-
-          this.camera.lookAt(newCoords.x, 0, newCoords.z);
-
-          this.radius = Math.hypot(newCoords.x, newCoords.y, newCoords.z)
-          this.phi = Math.acos(newCoords.y / this.radius);
-          this.theta = Math.atan2(newCoords.z, newCoords.x);
-          this.lon = THREE.Math.radToDeg(this.theta);
-          this.lat = 90 - THREE.Math.radToDeg(this.phi);
-
-          if (siblingData.id === 2) {
-            this.anotherSphere.mesh.rotation.y = THREE.MathUtils.degToRad(-130)
-          } else {
-            this.anotherSphere.mesh.rotation.y = 0
-          }
-
-          const texture = new Models.Location({ src: siblingData.src })
-          this.startLoading();
-          texture.load().then((texture) => {
-            this.anotherSphere.changeTexture(texture);
-            this.stopLoading();
-          })
-
-          this.anotherSphere.mesh.position.set(newCoords.x, newCoords.y, newCoords.z);
-
-          const target = { ...newCoords, opacity: 1, opacity2: 0 };
-          const tween = new TWEEN.Tween(target).to({ x: 0, y: 0, z: 0, opacity: 0, opacity2: 1 }, 2000)
-          tween.onUpdate(() => {
-            this.anotherSphere.mesh.position.set(target.x, target.y, target.z);
-            this.sphere.mesh.material.opacity = target.opacity;
-            this.anotherSphere.mesh.material.opacity = target.opacity2;
-          })
-          tween.start()
-          tween.onComplete(() => {
-            this.sphere.mesh.material.opacity = 1;
-            this.anotherSphere.mesh.material.opacity = 0;
-            this.anotherSphere.mesh.position.set(15, 0, 0);
-
-            this.isSphereAnimation = false;
-            this.switchScene(siblingData);
-          });
-        }
-      }
-    }
-
-    const onDocumentMouseMove = (event) => {
-      if (!this.isSphereAnimation) {
-        this.mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
-        this.mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
-
-        if (this.isUserInteracting) {
-          this.lon = (this.downPointerX - event.clientX) * this.dragFactor + this.downPointerLon;
-          this.lat = (event.clientY - this.downPointerY) * this.dragFactor + this.downPointerLat;
-        }
-      }
-    }
-
-    const onDocumentMouseUp = () => {
-      if (!this.isSphereAnimation) {
-        this.isUserInteracting = false
-      }
-    }
-
-    const onWindowResize = () => {
-      this.camera.aspect = window.innerWidth / window.innerHeight;
-      this.camera.updateProjectionMatrix();
-
-      this.renderer.setSize(window.innerWidth, window.innerHeight);
-    }
- 
     const update = () => {
       if (this.isUserInteracting) {
         this.lat = Math.max(-85, Math.min(85, this.lat));
@@ -195,10 +86,10 @@ export default class App extends Component {
 
     animate();
 
-    document.addEventListener('mousedown', onDocumentMouseDown, false);
-    document.addEventListener('mousemove', onDocumentMouseMove, false);
-    document.addEventListener('mouseup', onDocumentMouseUp, false);
-    window.addEventListener('resize', onWindowResize, false);
+    document.addEventListener('mousedown', this.onDocumentMouseDown, false);
+    document.addEventListener('mousemove', this.onDocumentMouseMove, false);
+    document.addEventListener('mouseup', this.onDocumentMouseUp, false);
+    window.addEventListener('resize', this.onWindowResize, false);
     document.querySelector('.main').addEventListener('click', (e) => {
       if (!e.target.classList.contains('modal')) {
         this.hideModal()
@@ -206,38 +97,149 @@ export default class App extends Component {
     })
   }
 
+  onDocumentMouseDown = (event) => {
+    event.preventDefault();
+
+    if (!this.isSphereAnimation) {
+      this.isUserInteracting = true
+
+      this.downPointerX = event.clientX
+      this.downPointerY = event.clientY
+      this.downPointerLon = this.lon
+      this.downPointerLat = this.lat
+
+      this.raycaster.setFromCamera(this.mouse, this.camera);
+
+      let arrows;
+
+      this.scene.children.forEach(children => {
+        if (children.type === 'Group') {
+          arrows = children.children;
+        }
+      })
+
+      const intersects = this.raycaster.intersectObjects(arrows);
+
+      for ( let i = 0; i < intersects.length; i ++ ) {
+
+        this.scene.remove(this.arrows.arrowGroup)
+
+        const currentData = data.find(({id}) => id === this.state.currentId);
+        const siblingData = data.find(({id}) => id === intersects[i].object.name);
+
+        const unit_vec = helpers.getUnicVector(currentData.coords, siblingData.coords);
+
+        const coefficient = 5;
+        const newCoords = {
+          x: unit_vec.x * coefficient,
+          y: unit_vec.y * coefficient,
+          z: unit_vec.z * coefficient,
+        };
+        
+        this.isSphereAnimation = true;
+        this.isUserInteracting = false;
+
+        this.camera.lookAt(newCoords.x, 0, newCoords.z);
+
+        this.radius = Math.hypot(newCoords.x, newCoords.y, newCoords.z)
+        this.phi = Math.acos(newCoords.y / this.radius);
+        this.theta = Math.atan2(newCoords.z, newCoords.x);
+        this.lon = THREE.Math.radToDeg(this.theta);
+        this.lat = 90 - THREE.Math.radToDeg(this.phi);
+
+        this.anotherSphere.mesh.rotation.y = siblingData.direction
+
+        const texture = new Models.Location({ app: this, data: siblingData })
+        this.startLoading();
+        texture.load().then((texture) => {
+          this.anotherSphere.changeTexture(texture);
+          this.stopLoading();
+        })
+
+        this.anotherSphere.mesh.position.set(newCoords.x, newCoords.y, newCoords.z);
+
+        const position = { ...newCoords, opacity: 1, opacity2: 0 };
+        const target = { x: 0, y: 0, z: 0, opacity: 0, opacity2: 1 };
+        const tween = new TWEEN.Tween(position).to(target, 2000)
+        tween.onUpdate(() => {
+          this.anotherSphere.mesh.position.set(position.x, position.y, position.z);
+          this.sphere.mesh.material.opacity = position.opacity;
+          this.anotherSphere.mesh.material.opacity = position.opacity2;
+        })
+        tween.start()
+        tween.onComplete(() => {
+          this.sphere.mesh.material.opacity = 1;
+          this.anotherSphere.mesh.material.opacity = 0;
+          this.anotherSphere.mesh.position.set(15, 0, 0);
+
+          this.isSphereAnimation = false;
+          this.switchScene(siblingData);
+        });
+      }
+    }
+  }
+
+  onDocumentMouseMove = (event) => {
+    if (!this.isSphereAnimation) {
+      this.mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
+      this.mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
+
+      if (this.isUserInteracting) {
+        this.lon = (this.downPointerX - event.clientX) * this.dragFactor + this.downPointerLon;
+        this.lat = (event.clientY - this.downPointerY) * this.dragFactor + this.downPointerLat;
+      }
+    }
+  }
+
+  onDocumentMouseUp = () => {
+    if (!this.isSphereAnimation) {
+      this.isUserInteracting = false
+    }
+  }
+
+  onWindowResize = () => {
+    this.camera.aspect = window.innerWidth / window.innerHeight;
+    this.camera.updateProjectionMatrix();
+
+    this.renderer.setSize(window.innerWidth, window.innerHeight);
+  }
+
   createArrows = (siblings, coords) => {
-    const arrows = new Arrows();
-    arrows.init(siblings, coords);
-    this.arrowGroup = arrows;
-    this.scene.add(this.arrowGroup.arrowGroup);
+    this.arrows = new Arrows();
+    this.arrows.init(siblings, coords);
+    this.scene.add(this.arrows.arrowGroup);
   };
 
   switchScene = async (siblingData) => {
-    for (let i = 0; i < this.scene.children.length; i++) {
-      if (this.scene.children[i].type === 'Group') {
-        this.scene.remove(this.scene.children[i]);
-      }
-    }
+    this.scene.remove(this.arrows.arrowGroup);
 
-    if (siblingData.id === 2) {
-      this.sphere.mesh.rotation.y = THREE.MathUtils.degToRad(-130)
-    } else {
-      this.sphere.mesh.rotation.y = 0
-    }
+    this.sphere.mesh.rotation.y = siblingData.direction
 
     const { id, coords, siblings } = siblingData;
-    this.currentId = id;
     this.setId(id);
 
     this.startLoading();
-    const texture = new Models.Location({ src: siblingData.src })
+    const texture = new Models.Location({ app: this, data: siblingData })
     texture.load().then((texture) => {
       this.sphere.changeTexture(texture);
       this.stopLoading();
     })
 
     this.createArrows(siblings, coords);
+    this.loadSiblings(siblingData.siblings)
+  }
+
+  loadSiblings = async (siblings) => {
+    siblings.forEach(siblingId => {
+      if (this.locations.find((location) => location.id === siblingId)) {
+        return
+      } else {
+        let siblingData = data.find(({id}) => id === siblingId);
+        let sibling = new Models.Sphere({ app: this, data: siblingData })
+        sibling.init()
+        console.log(this.locations)        
+      }
+    })
   }
 
   setId = (id) => {
@@ -270,7 +272,7 @@ export default class App extends Component {
         </div>
         <div id='threejs'>
         </div>
-        <Map currentId={currentId} action={this.showModal} />
+        <Map currentId={currentId} onClick={this.showModal} />
         <div className={isActive ? 'main__bg' : 'hidden'}>
           <div className='modal'>
             {data.map(({ id, coords }, i) => (
@@ -282,8 +284,8 @@ export default class App extends Component {
                 data-id={id}
                 key={id}
                 style={
-                  { top: coords.z * 30 + 150 + 'px',
-                    left: coords.x * 30 + 320 + 'px',
+                  { top: coords.z * 60 + 100 + 'px',
+                    left: coords.x * 60 + 250 + 'px',
                     backgroundColor: id === currentId ? '#42f5e3' : '#3b04b3'
                   }
                 }></span>

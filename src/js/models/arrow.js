@@ -24,12 +24,6 @@ export default class Arrow {
 
       const coefficient = 5;
 
-      // const newCoords = {
-      //   x: unit_vec.x * coefficient,
-      //   y: unit_vec.y * coefficient,
-      //   z: unit_vec.z * coefficient,
-      // };
-
       const triangleShape = new THREE.Shape()
         .moveTo(newMiddlePoint.x * coefficient, newMiddlePoint.z * (coefficient))
         .lineTo(newLeftPoint.x * (coefficient - 1), newLeftPoint.z * (coefficient - 1))
