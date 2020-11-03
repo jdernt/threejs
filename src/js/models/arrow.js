@@ -24,29 +24,23 @@ export default class Arrow {
 
       const coefficient = 5;
 
+      // const newCoords = {
+      //   x: unit_vec.x * coefficient,
+      //   y: unit_vec.y * coefficient,
+      //   z: unit_vec.z * coefficient,
+      // };
+
       const triangleShape = new THREE.Shape()
-        .moveTo(newMiddlePoint.x * coefficient, newMiddlePoint.z * coefficient)
+        .moveTo(newMiddlePoint.x * coefficient, newMiddlePoint.z * (coefficient))
         .lineTo(newLeftPoint.x * (coefficient - 1), newLeftPoint.z * (coefficient - 1))
         .lineTo(newRightPoint.x * (coefficient - 1), newRightPoint.z * (coefficient - 1))
 
-      const extrudeSettings = { depth: 0.05, bevelEnabled: false, steps: 1 };
+      const extrudeSettings = { depth: 0.1, bevelEnabled: false, steps: 1 };
       
       this.geometry = new THREE.ExtrudeBufferGeometry( triangleShape, extrudeSettings );
-      this.material = new THREE.MeshBasicMaterial({ color: 0xffffff});
+      this.material = new THREE.MeshBasicMaterial({ color: 0xffffff });
       this.mesh = new THREE.Mesh(this.geometry, this.material);
       this.mesh.name = id;
-
-      // const arrowGeometry = new THREE.Geometry();
-      // arrowGeometry.vertices.push(
-      //   new THREE.Vector3(newLeftPoint.x * (coefficient - 1), -3, newLeftPoint.z * (coefficient - 1)),
-      //   new THREE.Vector3(newMiddlePoint.x * coefficient, -3, newMiddlePoint.z * coefficient),
-      //   new THREE.Vector3(newRightPoint.x * (coefficient - 1), -3, newRightPoint.z * (coefficient - 1))
-      // );
-      // arrowGeometry.faces.push(new THREE.Face3(0, 1, 2));
-
-      // const material = new THREE.LineBasicMaterial({ color: 0xffffff, linewidth: 2 });
-      // this.mesh = new THREE.Mesh(arrowGeometry, material);
-      // this.mesh.name = id;
 
       this.arrowGroup.add(this.mesh);
       this.arrowGroup.rotation.x = THREE.MathUtils.degToRad(-90)

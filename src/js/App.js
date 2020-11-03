@@ -109,6 +109,12 @@ export default class App extends Component {
           this.lon = THREE.Math.radToDeg(this.theta);
           this.lat = 90 - THREE.Math.radToDeg(this.phi);
 
+          if (siblingData.id === 2) {
+            this.anotherSphere.mesh.rotation.y = THREE.MathUtils.degToRad(-130)
+          } else {
+            this.anotherSphere.mesh.rotation.y = 0
+          }
+
           const texture = new Models.Location({ src: siblingData.src })
           this.startLoading();
           texture.load().then((texture) => {
@@ -150,7 +156,7 @@ export default class App extends Component {
       }
     }
 
-    const onDocumentMouseUp = (event) => {
+    const onDocumentMouseUp = () => {
       if (!this.isSphereAnimation) {
         this.isUserInteracting = false
       }
@@ -212,6 +218,12 @@ export default class App extends Component {
       if (this.scene.children[i].type === 'Group') {
         this.scene.remove(this.scene.children[i]);
       }
+    }
+
+    if (siblingData.id === 2) {
+      this.sphere.mesh.rotation.y = THREE.MathUtils.degToRad(-130)
+    } else {
+      this.sphere.mesh.rotation.y = 0
     }
 
     const { id, coords, siblings } = siblingData;
