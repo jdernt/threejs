@@ -9,7 +9,7 @@ export default class Sphere {
       this.geometry.scale(-1, 1, 1);
       this.texture = new Models.Location({ src: './img/pano_1.png' })
       this.texture.load().then((texture) => {
-        this.material = new THREE.MeshBasicMaterial({ map: texture });
+        this.material = new THREE.MeshBasicMaterial({ map: texture, transparent: true, opacity: 1 });
         this.mesh = new THREE.Mesh(this.geometry, this.material)
         resolve(this)
       })
