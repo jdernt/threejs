@@ -1,7 +1,5 @@
 import * as THREE from 'three';
 import Models from './index.js'
-import data from '../data';
-
 
 export default class Sphere {
   constructor({ app, data }){
@@ -29,5 +27,4 @@ export default class Sphere {
     this.mesh.material.map = texture;
     this.mesh.material.needsUpdate = true;
   }
-
 }

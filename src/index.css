@@ -25,37 +25,46 @@
   position: fixed;
   right: 0;
   bottom: 0;
-  width: 250px;
-  height: 100px;
-  margin: 20px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 999;
+  cursor: default;
+}
+
+.map .map__container {
+  position: relative;
+  width: 300px;
+  height: 200px;
   background-color: #ffffff60;
   cursor: pointer;
 }
 
-.map__item {
+.map .map__container .map__item {
+  width: 20px;
+  height: 20px;
+  border-radius: 100%;
   position: absolute;
-  display: inline-block;
-  width: 15px;
-  height: 15px;
-  border-radius: 50%;
 }
 
-.modal {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 50%;
+.map.modal {
+  left: 0;
+  top: 0;
+  right: unset;
+  bottom: unset;
+  width: 100%;
+  height: 100%;
+  background-color: #00000060;
+}
+
+.map.modal .map__container {
+  width: 40%;
   height: 50%;
-  background-color: #ffffff60;
 }
 
-.modal__item {
-  position: absolute;
-  display: inline-block;
+.map.modal .map__container .map__item {
   width: 30px;
   height: 30px;
-  border-radius: 50%;
   cursor: pointer;
 }
 

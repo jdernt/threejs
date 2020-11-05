@@ -1,6 +1,4 @@
 import * as THREE from 'three';
-import data from '../data';
-
 
 export default class Location {
   constructor({ app, data }) {

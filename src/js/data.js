@@ -27,7 +27,7 @@ const data = [
     id: 2,
     src: "./img/pano_3.png",
     coords: {
-      x: 1.5,
+      x: 1,
       y: 0,
       z: 1
     },
@@ -44,11 +44,11 @@ const data = [
       z: 0
     },
     description: 'напротив пекарни',
-    siblings: [0, 7],
+    siblings: [0, 4],
     direction: 0
   },
   {
-    id: 7,
+    id: 4,
     src: "./img/pano_4_1.png",
     coords: {
       x: -2,

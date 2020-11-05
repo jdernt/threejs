@@ -25,7 +25,11 @@ export default class App extends Component {
   dragFactor = 0.2;
   radius = 10;
 
+  map = document.querySelector('.map');
+  mapItem = document.querySelector('.map__item');
+  
   componentDidMount = async () => {
+    this.addEvents();
     const { id, coords, siblings } = data[0];
 
     this.setId(id);
@@ -51,7 +55,7 @@ export default class App extends Component {
     await this.sphere.init()
     this.scene.add(this.sphere.mesh)
     this.sphere.mesh.material.opacity = 1
-    this.loadSiblings(siblings)
+    await this.loadSiblings(siblings)
 
     this.anotherSphere = new Models.Sphere({ app: this, data: data[0] });
     await this.anotherSphere.init()
@@ -60,41 +64,82 @@ export default class App extends Component {
 
     this.createArrows(siblings, coords);
 
-    const update = () => {
-      if (this.isUserInteracting) {
-        this.lat = Math.max(-85, Math.min(85, this.lat));
-        this.phi = THREE.Math.degToRad(90 - this.lat);
-        this.theta = THREE.Math.degToRad(this.lon);
+    requestAnimationFrame(this.animate);
 
-        this.camera.target.x = this.radius * Math.sin(this.phi) * Math.cos(this.theta);
-        this.camera.target.y = this.radius * Math.cos(this.phi);
-        this.camera.target.z = this.radius * Math.sin(this.phi) * Math.sin(this.theta);   
-
-        this.radius = Math.hypot(this.camera.target.x, this.camera.target.y, this.camera.target.z);   
-
-        this.camera.lookAt(this.camera.target);
-      }
-      
-      this.renderer.render(this.scene, this.camera);
-    }
-
-    const animate = (time) => {
-      requestAnimationFrame(animate);
-      update();
-      TWEEN.update(time);
-    };
-
-    animate();
-
-    document.addEventListener('mousedown', this.onDocumentMouseDown, false);
-    document.addEventListener('mousemove', this.onDocumentMouseMove, false);
-    document.addEventListener('mouseup', this.onDocumentMouseUp, false);
-    window.addEventListener('resize', this.onWindowResize, false);
     document.querySelector('.main').addEventListener('click', (e) => {
-      if (!e.target.classList.contains('modal')) {
+      if (document.querySelector('.modal')) {
         this.hideModal()
       }
     })
+
+    document.querySelector('.main').addEventListener('click', (e) => {
+      if (e.target.classList.contains('map__container')) {
+        this.showModal()
+      }
+    })
+  }
+
+  componentWillUnmount() {
+    this.removeEvents()
+  }
+
+  animate = (time) => {
+    requestAnimationFrame(this.animate);
+    this.update();
+    TWEEN.update(time);
+  };
+
+  update = () => {
+    if (this.isUserInteracting) {
+      this.lat = Math.max(-85, Math.min(85, this.lat));
+      this.phi = THREE.Math.degToRad(90 - this.lat);
+      this.theta = THREE.Math.degToRad(this.lon);
+
+      this.camera.target.x = this.radius * Math.sin(this.phi) * Math.cos(this.theta);
+      this.camera.target.y = this.radius * Math.cos(this.phi);
+      this.camera.target.z = this.radius * Math.sin(this.phi) * Math.sin(this.theta);   
+
+      this.radius = Math.hypot(this.camera.target.x, this.camera.target.y, this.camera.target.z);   
+
+      this.camera.lookAt(this.camera.target);
+    }
+
+    this.raycaster.setFromCamera(this.mouse, this.camera);
+
+    const intersects = this.raycaster.intersectObjects(this.arrows.arrowGroup.children);
+
+    if (intersects.length > 0) {
+      if (intersects[0].object.material.color.getHexString() === 'ffffff') {
+        intersects[0].object.material.color.set(0xff0000)
+      } else {
+        return;
+      }
+    } else {
+      this.arrows.arrowGroup.children.forEach(arrow => {
+        if (arrow.material.color.getHexString() === 'ff0000') {
+          arrow.material.color.set(0xffffff)
+        } else {
+          return;
+        }
+      })
+    }
+    
+    this.renderer.render(this.scene, this.camera);
+  }
+
+  windowEvents = [
+    { type: 'mousedown', listener: 'onDocumentMouseDown' },
+    { type: 'mousemove', listener: 'onDocumentMouseMove' },
+    { type: 'mouseup', listener: 'onDocumentMouseUp' },
+    { type: 'resize', listener: 'onWindowResize' },
+  ]
+
+  addEvents = () => {
+    this.windowEvents.forEach(({ type, listener }) => window.addEventListener(type, this[listener]));
+  }
+
+  removeEvents = () => {
+    this.windowEvents.forEach(({ type, listener }) => window.removeEventListener(type, this[listener]));
   }
 
   onDocumentMouseDown = (event) => {
@@ -110,17 +155,9 @@ export default class App extends Component {
 
       this.raycaster.setFromCamera(this.mouse, this.camera);
 
-      let arrows;
+      const intersects = this.raycaster.intersectObjects(this.arrows.arrowGroup.children);
 
-      this.scene.children.forEach(children => {
-        if (children.type === 'Group') {
-          arrows = children.children;
-        }
-      })
-
-      const intersects = this.raycaster.intersectObjects(arrows);
-
-      for ( let i = 0; i < intersects.length; i ++ ) {
+      for (let i = 0; i < intersects.length; i ++) {
 
         this.scene.remove(this.arrows.arrowGroup)
 
@@ -180,14 +217,14 @@ export default class App extends Component {
   }
 
   onDocumentMouseMove = (event) => {
-    if (!this.isSphereAnimation) {
-      this.mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
-      this.mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
+    this.mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
+    this.mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
 
+    if (!this.isSphereAnimation) {
       if (this.isUserInteracting) {
         this.lon = (this.downPointerX - event.clientX) * this.dragFactor + this.downPointerLon;
         this.lat = (event.clientY - this.downPointerY) * this.dragFactor + this.downPointerLat;
-      }
+      }  
     }
   }
 
@@ -213,6 +250,7 @@ export default class App extends Component {
   switchScene = async (siblingData) => {
     this.scene.remove(this.arrows.arrowGroup);
 
+    console.log(siblingData)
     this.sphere.mesh.rotation.y = siblingData.direction
 
     const { id, coords, siblings } = siblingData;
@@ -226,18 +264,19 @@ export default class App extends Component {
     })
 
     this.createArrows(siblings, coords);
-    this.loadSiblings(siblingData.siblings)
+    this.loadSiblings(siblingData.siblings);
   }
 
   loadSiblings = async (siblings) => {
     siblings.forEach(siblingId => {
       if (this.locations.find((location) => location.id === siblingId)) {
-        return
+        return;
       } else {
+        this.startLoading();
         let siblingData = data.find(({id}) => id === siblingId);
         let sibling = new Models.Sphere({ app: this, data: siblingData })
         sibling.init()
-        console.log(this.locations)        
+        this.stopLoading();
       }
     })
   }
@@ -254,12 +293,29 @@ export default class App extends Component {
     this.setState({ isLoading: false })
   }
 
+  clickOnPoint = (e) => {
+    console.log(e.target.dataset.id)
+    this.switchScene(data[e.target.dataset.id])
+  }
+
   showModal = () => {
     this.setState({ isActive: true })
+    const map = document.querySelector('.map');
+    map.classList.add('modal')
+    this.isSphereAnimation = true
+
+    const mapItems = document.querySelectorAll('.map__item')
+    mapItems.forEach(item => item.addEventListener('click', this.clickOnPoint))
   }
 
   hideModal = () => {
     this.setState({ isActive: false })
+    const map = document.querySelector('.modal');
+    map.classList.remove('modal')
+    this.isSphereAnimation = false
+
+    const mapItems = document.querySelectorAll('.map__item')
+    mapItems.forEach(item => item.removeEventListener('click', this.clickOnPoint, true))
   }
 
   render() {
@@ -272,26 +328,7 @@ export default class App extends Component {
         </div>
         <div id='threejs'>
         </div>
-        <Map currentId={currentId} onClick={this.showModal} />
-        <div className={isActive ? 'main__bg' : 'hidden'}>
-          <div className='modal'>
-            {data.map(({ id, coords }, i) => (
-              <span
-                onClick={() => { 
-                  this.hideModal()
-                  this.switchScene(data[i]) }}
-                className="modal__item"
-                data-id={id}
-                key={id}
-                style={
-                  { top: coords.z * 60 + 100 + 'px',
-                    left: coords.x * 60 + 250 + 'px',
-                    backgroundColor: id === currentId ? '#42f5e3' : '#3b04b3'
-                  }
-                }></span>
-            ))}
-          </div>
-        </div>
+        <Map app={this} currentId={currentId} isActive={isActive} />
       </div>
       
     );
