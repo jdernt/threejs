@@ -25,8 +25,6 @@ export default class App extends Component {
   dragFactor = 0.2;
   radius = 10;
 
-  arrows = [];
-  
   componentDidMount = async () => {
     this.addEvents();
     const { id, coords, siblings } = data[0];
@@ -257,12 +255,14 @@ export default class App extends Component {
     this.scene.add(this.arrowsGroup)
     this.arrowsGroup.rotation.y = THREE.MathUtils.degToRad(-90)
 
+    this.arrows = [];
+
     this.arrowsGroup.children.forEach(group => {
       this.arrows.push(group.children[0])
     })
   }
 
-  switchScene = async (siblingData) => {
+  switchScene = (siblingData) => {
     this.scene.remove(this.arrowsGroup)
 
     this.sphere.changeRotation(siblingData.direction)
@@ -278,7 +278,7 @@ export default class App extends Component {
     })
 
     this.createArrows(siblings)
-    this.loadSiblings(siblingData.siblings);
+    this.loadSiblings(siblings);
   }
 
   loadSiblings = async (siblings) => {
