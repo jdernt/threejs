@@ -155,66 +155,7 @@ export default class App extends Component {
       this.downPointerLon = this.lon
       this.downPointerLat = this.lat
 
-      this.raycaster.setFromCamera(this.mouse, this.camera);
-
-      const intersects = this.raycaster.intersectObjects(this.arrows);
-
-      for (let i = 0; i < intersects.length; i ++) {
-
-        this.scene.remove(this.arrowsGroup)
-
-        const currentData = data.find(({id}) => id === this.state.currentId);
-        const siblingData = data.find(({id}) => id === intersects[i].object.name);
-
-        const unit_vec = helpers.getUnicVector(currentData.coords, siblingData.coords);
-
-        const coefficient = 5;
-        const newCoords = {
-          x: unit_vec.x * coefficient,
-          y: unit_vec.y * coefficient,
-          z: unit_vec.z * coefficient,
-        };
-        
-        this.isSphereAnimation = true;
-        this.isUserInteracting = false;
-
-        this.camera.lookAt(newCoords.x, 0, newCoords.z);
-
-        this.radius = Math.hypot(newCoords.x, newCoords.y, newCoords.z)
-        this.phi = Math.acos(newCoords.y / this.radius);
-        this.theta = Math.atan2(newCoords.z, newCoords.x);
-        this.lon = THREE.Math.radToDeg(this.theta);
-        this.lat = 90 - THREE.Math.radToDeg(this.phi);
-
-        this.anotherSphere.changeRotation(siblingData.direction)
-
-        const texture = new Models.Location({ app: this, data: siblingData })
-        this.startLoading();
-        texture.load().then((texture) => {
-          this.anotherSphere.changeTexture(texture);
-          this.stopLoading();
-        })
-
-        this.anotherSphere.mesh.position.set(newCoords.x, newCoords.y, newCoords.z);
-
-        const position = { ...newCoords, opacity: 1, opacity2: 0 };
-        const target = { x: 0, y: 0, z: 0, opacity: 0, opacity2: 1 };
-        const tween = new TWEEN.Tween(position).to(target, 2000)
-        tween.onUpdate(() => {
-          this.anotherSphere.changePosition(position.x, position.y, position.z);
-          this.sphere.changeOpacity(position.opacity)
-          this.anotherSphere.changeOpacity(position.opacity2)
-        })
-        tween.start()
-        tween.onComplete(() => {
-          this.sphere.changeOpacity(1)
-          this.anotherSphere.changeOpacity(0)
-          this.anotherSphere.changePosition(15, 0, 0);
-
-          this.isSphereAnimation = false;
-          this.switchScene(siblingData);
-        });
-      }
+      
     }
   }
 
@@ -233,6 +174,14 @@ export default class App extends Component {
   onDocumentMouseUp = () => {
     if (!this.isSphereAnimation) {
       this.isUserInteracting = false
+
+      this.raycaster.setFromCamera(this.mouse, this.camera);
+
+      const intersects = this.raycaster.intersectObjects(this.arrows);
+
+      if (intersects.length > 0) {
+        this.switchSceneAnimation(intersects[0])        
+      }
     }
   }
 
@@ -260,6 +209,61 @@ export default class App extends Component {
     this.arrowsGroup.children.forEach(group => {
       this.arrows.push(group.children[0])
     })
+  }
+
+  switchSceneAnimation = (intersect) => {
+    this.scene.remove(this.arrowsGroup)
+
+    const currentData = data.find(({id}) => id === this.state.currentId);
+    const siblingData = data.find(({id}) => id === intersect.object.name);
+
+    const unit_vec = helpers.getUnicVector(currentData.coords, siblingData.coords);
+
+    const coefficient = 5;
+    const newCoords = {
+      x: unit_vec.x * coefficient,
+      y: unit_vec.y * coefficient,
+      z: unit_vec.z * coefficient,
+    };
+    
+    this.isSphereAnimation = true;
+
+    this.camera.lookAt(newCoords.x, 0, newCoords.z);
+
+    this.radius = Math.hypot(newCoords.x, newCoords.y, newCoords.z)
+    this.phi = Math.acos(newCoords.y / this.radius);
+    this.theta = Math.atan2(newCoords.z, newCoords.x);
+    this.lon = THREE.Math.radToDeg(this.theta);
+    this.lat = 90 - THREE.Math.radToDeg(this.phi);
+
+    this.anotherSphere.changeRotation(siblingData.direction)
+
+    const texture = new Models.Location({ app: this, data: siblingData })
+    this.startLoading();
+    texture.load().then((texture) => {
+      this.anotherSphere.changeTexture(texture);
+      this.stopLoading();
+    })
+
+    this.anotherSphere.mesh.position.set(newCoords.x, newCoords.y, newCoords.z);
+
+    const position = { ...newCoords, opacity: 1, opacity2: 0 };
+    const target = { x: 0, y: 0, z: 0, opacity: 0, opacity2: 1 };
+    new TWEEN.Tween(position).to(target, 2000)
+      .onUpdate(() => {
+        this.anotherSphere.changePosition(position.x, position.y, position.z);
+        this.sphere.changeOpacity(position.opacity)
+        this.anotherSphere.changeOpacity(position.opacity2)
+      })
+      .start()
+      .onComplete(() => {
+        this.sphere.changeOpacity(1)
+        this.anotherSphere.changeOpacity(0)
+        this.anotherSphere.changePosition(15, 0, 0);
+
+        this.isSphereAnimation = false;
+        this.switchScene(siblingData);
+      });
   }
 
   switchScene = (siblingData) => {
@@ -328,7 +332,7 @@ export default class App extends Component {
     this.isSphereAnimation = false
 
     const mapItems = document.querySelectorAll('.map__item')
-    mapItems.forEach(item => item.removeEventListener('click', this.clickOnPoint, true))
+    mapItems.forEach(item => item.removeEventListener('click', this.clickOnPoint))
   }
 
   render() {
