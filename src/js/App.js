@@ -3,7 +3,6 @@ import * as THREE from 'three';
 import TWEEN from '@tweenjs/tween.js';
 
 import Models from './models';
-import Arrows from './models/arrow'
 import data from './data';
 import * as helpers from './components/helpers'
 import Map from './components/Map';
@@ -14,6 +13,7 @@ export default class App extends Component {
     isLoading: false,
     isActive: false
   }
+
   locations = []
 
   isUserInteracting = false;
@@ -25,8 +25,7 @@ export default class App extends Component {
   dragFactor = 0.2;
   radius = 10;
 
-  map = document.querySelector('.map');
-  mapItem = document.querySelector('.map__item');
+  arrows = [];
   
   componentDidMount = async () => {
     this.addEvents();
@@ -39,12 +38,17 @@ export default class App extends Component {
 
     this.parent = document.getElementById('threejs')
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0x000000);
+    this.scene.background = new THREE.Color(0xffffff);
 
     this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
     this.camera.position.set(0, 0, 0);
     this.camera.lookAt(10, 0, 0)
     this.camera.target = new THREE.Vector3();
+
+    this.light = new THREE.PointLight(0xffffff, 0.8);
+    this.light.position.y = 10;
+    this.light.position.z = 10;
+    this.scene.add(this.light)
 
     this.renderer = new THREE.WebGLRenderer();
     this.renderer.setSize(window.innerWidth, window.innerHeight);
@@ -57,12 +61,12 @@ export default class App extends Component {
     this.sphere.mesh.material.opacity = 1
     await this.loadSiblings(siblings)
 
+    this.createArrows(siblings)
+
     this.anotherSphere = new Models.Sphere({ app: this, data: data[0] });
     await this.anotherSphere.init()
     this.scene.add(this.anotherSphere.mesh)
     this.anotherSphere.mesh.position.set(15, 0, 0);
-
-    this.createArrows(siblings, coords);
 
     requestAnimationFrame(this.animate);
 
@@ -106,18 +110,18 @@ export default class App extends Component {
 
     this.raycaster.setFromCamera(this.mouse, this.camera);
 
-    const intersects = this.raycaster.intersectObjects(this.arrows.arrowGroup.children);
+    const intersects = this.raycaster.intersectObjects(this.arrows);
 
     if (intersects.length > 0) {
-      if (intersects[0].object.material.color.getHexString() === 'ffffff') {
+      if (intersects[0].object.material.color.getHexString() === '00ffae') {
         intersects[0].object.material.color.set(0xff0000)
       } else {
         return;
       }
     } else {
-      this.arrows.arrowGroup.children.forEach(arrow => {
+      this.arrows.forEach(arrow => {
         if (arrow.material.color.getHexString() === 'ff0000') {
-          arrow.material.color.set(0xffffff)
+          arrow.material.color.set(0x00ffae)
         } else {
           return;
         }
@@ -155,11 +159,11 @@ export default class App extends Component {
 
       this.raycaster.setFromCamera(this.mouse, this.camera);
 
-      const intersects = this.raycaster.intersectObjects(this.arrows.arrowGroup.children);
+      const intersects = this.raycaster.intersectObjects(this.arrows);
 
       for (let i = 0; i < intersects.length; i ++) {
 
-        this.scene.remove(this.arrows.arrowGroup)
+        this.scene.remove(this.arrowsGroup)
 
         const currentData = data.find(({id}) => id === this.state.currentId);
         const siblingData = data.find(({id}) => id === intersects[i].object.name);
@@ -184,7 +188,7 @@ export default class App extends Component {
         this.lon = THREE.Math.radToDeg(this.theta);
         this.lat = 90 - THREE.Math.radToDeg(this.phi);
 
-        this.anotherSphere.mesh.rotation.y = siblingData.direction
+        this.anotherSphere.changeRotation(siblingData.direction)
 
         const texture = new Models.Location({ app: this, data: siblingData })
         this.startLoading();
@@ -199,15 +203,15 @@ export default class App extends Component {
         const target = { x: 0, y: 0, z: 0, opacity: 0, opacity2: 1 };
         const tween = new TWEEN.Tween(position).to(target, 2000)
         tween.onUpdate(() => {
-          this.anotherSphere.mesh.position.set(position.x, position.y, position.z);
-          this.sphere.mesh.material.opacity = position.opacity;
-          this.anotherSphere.mesh.material.opacity = position.opacity2;
+          this.anotherSphere.changePosition(position.x, position.y, position.z);
+          this.sphere.changeOpacity(position.opacity)
+          this.anotherSphere.changeOpacity(position.opacity2)
         })
         tween.start()
         tween.onComplete(() => {
-          this.sphere.mesh.material.opacity = 1;
-          this.anotherSphere.mesh.material.opacity = 0;
-          this.anotherSphere.mesh.position.set(15, 0, 0);
+          this.sphere.changeOpacity(1)
+          this.anotherSphere.changeOpacity(0)
+          this.anotherSphere.changePosition(15, 0, 0);
 
           this.isSphereAnimation = false;
           this.switchScene(siblingData);
@@ -241,17 +245,27 @@ export default class App extends Component {
     this.renderer.setSize(window.innerWidth, window.innerHeight);
   }
 
-  createArrows = (siblings, coords) => {
-    this.arrows = new Arrows();
-    this.arrows.init(siblings, coords);
-    this.scene.add(this.arrows.arrowGroup);
-  };
+  createArrows = (siblings) => {
+    let arrows = {}
+    this.arrowsGroup = new THREE.Group();
+
+    siblings.forEach(id => {
+      arrows[id] = new Models.Arrow({ id, app: this })
+      this.arrowsGroup.add(arrows[id].mesh)
+    })
+
+    this.scene.add(this.arrowsGroup)
+    this.arrowsGroup.rotation.y = THREE.MathUtils.degToRad(-90)
+
+    this.arrowsGroup.children.forEach(group => {
+      this.arrows.push(group.children[0])
+    })
+  }
 
   switchScene = async (siblingData) => {
-    this.scene.remove(this.arrows.arrowGroup);
+    this.scene.remove(this.arrowsGroup)
 
-    console.log(siblingData)
-    this.sphere.mesh.rotation.y = siblingData.direction
+    this.sphere.changeRotation(siblingData.direction)
 
     const { id, coords, siblings } = siblingData;
     this.setId(id);
@@ -263,7 +277,7 @@ export default class App extends Component {
       this.stopLoading();
     })
 
-    this.createArrows(siblings, coords);
+    this.createArrows(siblings)
     this.loadSiblings(siblingData.siblings);
   }
 
@@ -294,7 +308,6 @@ export default class App extends Component {
   }
 
   clickOnPoint = (e) => {
-    console.log(e.target.dataset.id)
     this.switchScene(data[e.target.dataset.id])
   }
 
@@ -319,7 +332,7 @@ export default class App extends Component {
   }
 
   render() {
-    const { currentId, isLoading, isActive } = this.state;
+    const { currentId, isLoading } = this.state;
     return (
       <div className='main'>
         <div className={isLoading ? 'main__bg' : 'hidden'}>
@@ -328,7 +341,7 @@ export default class App extends Component {
         </div>
         <div id='threejs'>
         </div>
-        <Map app={this} currentId={currentId} isActive={isActive} />
+        <Map currentId={currentId} />
       </div>
       
     );

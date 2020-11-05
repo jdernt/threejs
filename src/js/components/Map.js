@@ -6,7 +6,7 @@ export default class Map extends Component {
 	
 
 	render() {
-		const { currentId, isActive, app } = this.props;
+		const { currentId } = this.props;
 		return (
 			<div className='map' >
 				<div className='map__container'>

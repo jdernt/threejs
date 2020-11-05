@@ -33,7 +33,7 @@ const data = [
     },
     description: 'возле рекламы',
     siblings: [0],
-    direction: -90
+    direction: 90
   },
   {
     id: 3,

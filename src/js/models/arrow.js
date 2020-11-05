@@ -3,42 +3,51 @@ import data from '../data'
 import * as helpers from '../components/helpers';
 
 export default class Arrow {
-  
-  init = (siblings, currentCoords) => {
-    this.arrowGroup = new THREE.Group();
+  constructor({ id, app }) {
+    this.id = id;
+    this.app = app;
+    this.init()
+  }
 
-    siblings.forEach(sibling => {
-      const currentSibling = (data.filter(({id}) => sibling === id)[0]);
-      const { id, coords } = currentSibling;
+  init = () => {
+    this.mesh = new THREE.Group()
+    this.mesh.add(this.createArrow())
+    this.mesh.rotation.z = THREE.MathUtils.degToRad(-90)
 
-      const unit_vec = helpers.getUnicVector(currentCoords, coords);
-      const leftPoint = helpers.rotationMatrix(unit_vec, 45,)
-      const rightPoint = helpers.rotationMatrix(unit_vec, -45)
+    const currentData = data.find(({ id }) => id === this.app.state.currentId);
+    const siblingData = data[this.id];
 
-      const x0 = (leftPoint.x + unit_vec.x + rightPoint.x) / 3;
-      const z0 = (leftPoint.z + unit_vec.z + rightPoint.z) / 3;
+    const unit_vec = helpers.getUnicVector(
+      currentData.coords,
+      siblingData.coords
+    );
 
-      const newLeftPoint = helpers.resizeTriangle(leftPoint, x0, z0)
-      const newRightPoint = helpers.resizeTriangle(rightPoint, x0, z0)
-      const newMiddlePoint = helpers.resizeTriangle(unit_vec, x0, z0)
+    const coefficient = 1;
+    const newCoords = {
+      x: unit_vec.x * coefficient,
+      y: unit_vec.y * coefficient,
+      z: unit_vec.z * coefficient,
+    };
 
-      const coefficient = 5;
+    this.mesh.lookAt(new THREE.Vector3(newCoords.x, newCoords.y, newCoords.z))
+  }
 
-      const triangleShape = new THREE.Shape()
-        .moveTo(newMiddlePoint.x * coefficient, newMiddlePoint.z * (coefficient))
-        .lineTo(newLeftPoint.x * (coefficient - 1), newLeftPoint.z * (coefficient - 1))
-        .lineTo(newRightPoint.x * (coefficient - 1), newRightPoint.z * (coefficient - 1))
+  createArrow = () => {
+    const triangleShape = new THREE.Shape()
+      .moveTo(0, 0)
+      .lineTo(-0.05, 0.1)
+      .lineTo(0.05, 0.1)
 
-      const extrudeSettings = { depth: 0.1, bevelEnabled: false, steps: 1 };
-      
-      this.geometry = new THREE.ExtrudeBufferGeometry( triangleShape, extrudeSettings );
-      this.material = new THREE.MeshBasicMaterial({ color: 0xffffff });
-      this.mesh = new THREE.Mesh(this.geometry, this.material);
-      this.mesh.name = id;
-
-      this.arrowGroup.add(this.mesh);
-      this.arrowGroup.rotation.x = THREE.MathUtils.degToRad(-90)
-      this.arrowGroup.position.y = -2;
-    });
+    const extrudeSettings = { depth: 0.01, bevelEnabled: false, steps: 1 };
+    const geometry = new THREE.ExtrudeBufferGeometry(triangleShape, extrudeSettings);
+    const material = new THREE.MeshStandardMaterial({ color: 0x00ffae });
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.rotation.x = THREE.MathUtils.degToRad(-90)
+    mesh.rotation.z = THREE.MathUtils.degToRad(90)
+    mesh.position.x = 0.4
+    mesh.position.y = -0.2
+    mesh.name = this.id
+    this.arrow = mesh;
+    return mesh;
   }
 }
