@@ -6,13 +6,13 @@ export default class Map extends Component {
 	
 
 	render() {
-		const { currentId } = this.props;
+		const { currentId, action } = this.props;
 		return (
 			<div className='map' >
-				<div className='map__container'>
+				<div className='map__container' onClick={action}>
 					{data.map(({ id, coords }, i) => (
 						<span 
-							className='map__item' 
+							className='map__item js-dot' 
 							key={id}
 							data-id={id}					
 							style={

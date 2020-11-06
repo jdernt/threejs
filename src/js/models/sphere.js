@@ -12,6 +12,7 @@ export default class Sphere {
 
   init = async () => {
     return new Promise(resolve => {
+      this.app.startLoading()
       this.texture = new Models.Location({ app: this.app, data: this.data })
       this.texture.load().then(texture => {
         this.geometry = new THREE.SphereGeometry(5, 32, 32);
@@ -23,14 +24,24 @@ export default class Sphere {
         });
         this.mesh = new THREE.Mesh(this.geometry, this.material)
         this.mesh.scale.set(-1, 1, -1)
+        this.app.stopLoading()
         resolve(this)
       })
-    })    
+    })
   }
 
-  changeTexture = (texture) => {
-    this.mesh.material.map = texture;
-    this.mesh.material.needsUpdate = true;
+  changeTexture = async (data) => {
+    this.app.startLoading()
+    let location = this.app.locations[data.id];
+    if (!location) {
+      location = new Models.Location({ app: this.app, data: data })
+    }
+    if (!location.texture) {
+      await location.load()
+    }
+    this.mesh.material.map = location.texture;
+    this.changeRotation(data.direction)
+    this.app.stopLoading()
   }
 
   changeOpacity = (opacity) => {
